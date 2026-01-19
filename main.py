@@ -77,13 +77,13 @@ def get_ai_summary(news_text):
     
     Tasks:
     1. Select 5 most important news.
-    2. For each news, provide a summary in both Traditional Chinese (Hong Kong style) and English.
-    3. Format the output professionally for a Telegram message using Markdown.
+    2. For each news, provide a summary with the English version FIRST, followed by the Traditional Chinese (Hong Kong style) version.
+    3. Format the output professionally for a Telegram message using Markdown. Use bold English titles for clarity.
 
-    At the end, provide a 'Daily Insight' section which includes:
-    1. A brief Sentiment Analysis (Positive/Neutral/Negative) of today's news with a brief reason.
-    2. 3 Key Topics (Keywords) extracted from the news batch.
-    3. A 'Summary Conclusion' (1-2 sentences) reflecting the overall local trend in both Traditional Chinese and English.
+    At the end, provide a 'Daily Insight' section (English First):
+    1. A brief Sentiment Analysis (Positive/Neutral/Negative) with reasons in both languages.
+    2. 3 Key Topics (Keywords) in both languages.
+    3. A 'Summary Conclusion' (1-2 sentences) in English followed by Traditional Chinese.
     """
     
     data = {
