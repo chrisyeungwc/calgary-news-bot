@@ -69,10 +69,7 @@ def get_ai_summary(news_text):
     Tasks:
     1. Select 5 most important news.
     2. Format the output professionally for a Telegram message using Markdown. 
-    3. **LANGUAGE REQUIREMENT: Your response must be in {LANG_CHOICE}.**
-       - If {LANG_CHOICE} is 'Bilingual', use English First, then Traditional Chinese (Hong Kong style) for every title and summary.
-       - If {LANG_CHOICE} is 'Chinese', use Traditional Chinese only.
-       - If {LANG_CHOICE} is 'English', use English only.
+    3. **CRITICAL: Every title, section header, and summary must be Bilingual (English First, then Traditional Chinese).**
 
     Output Structure (for Bilingual):
     # 📰 Daily Brief | 每日摘要
