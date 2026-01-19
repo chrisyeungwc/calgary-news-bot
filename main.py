@@ -77,6 +77,9 @@ def get_ai_summary(news_text):
     **Summary:** [English]
     **摘要：** [Chinese]
     🔗 [Link](URL_HERE)  <-- CRITICAL: Use this format for links
+
+    CRITICAL: You MUST wrap the URL in the [🔗 Link](URL) format. 
+    Do not display the raw URL.
     
     ---
     ## 📊 Daily Insight | 每日洞察
@@ -97,7 +100,11 @@ def get_ai_summary(news_text):
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
-    payload = {"chat_id": TG_CHAT_ID, "text": text, "parse_mode": "Markdown"}
+    payload = {
+        "chat_id": TG_CHAT_ID,
+        "text": text,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": True}
     requests.post(url, json=payload)
 
 def get_daily_batch(df):
@@ -128,7 +135,9 @@ if __name__ == "__main__":
         news_summary_input = ""
         for _, row in target_news.iterrows():
             desc = row['DescriptionTitle'] if row['DescriptionTitle'] else row['DescriptionAlt']
-            news_summary_input += f"標題: {row['Title']}\n簡介: {desc}\n[Link]({row['Link']})\n\n"
+            # Use Markdown [Link Text](Link) format
+            link_markdown = f"[🔗 News Link]({row['Link']})"
+            news_summary_input += f"標題: {row['Title']}\n簡介: {desc}\n{link_markdown}\n\n"
         
         # 4. AI Summarize and Send
         final_report = get_ai_summary(news_summary_input)
