@@ -1,4 +1,5 @@
 📰 Calgary News Intelligence Pipeline (Bilingual)
+
 An automated serverless data pipeline that extracts local news from CBC Calgary, processes it via LLM (DeepSeek-V3), and delivers AI-summarized bilingual reports through Telegram.
 
 🚀 Key Features
