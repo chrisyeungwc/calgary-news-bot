@@ -79,7 +79,7 @@ def get_ai_summary(news_text):
     ## [Index]. [English Title] | [Chinese Title]
     **Summary:** [English]
     **摘要：** [Chinese]
-    🔗 [Link]
+    🔗 [Link](URL_HERE)  <-- CRITICAL: Use this format for links
     
     ---
     ## 📊 Daily Insight | 每日洞察
