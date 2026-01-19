@@ -108,7 +108,6 @@ def get_daily_batch(df):
     calgary_now = datetime.now(CALGARY_TZ)
     yesterday_calgary = calgary_now - timedelta(days=1)
     
-    # Ensure DateTime is in datetime format and handle timezone localization
     df['DateTime'] = pd.to_datetime(df['DateTime'])
     # Force convert to Calgary timezone for accurate comparison
     mask = (df['DateTime'].dt.tz_localize(None).dt.tz_localize(CALGARY_TZ) > yesterday_calgary)
@@ -132,14 +131,14 @@ if __name__ == "__main__":
     # Save to local CSV file
     df_final.sort_values('DateTime', ascending=False).to_csv(CSV_FILE, index=False)
 
-    # 3. Filter daily news for AI processing (Targeting 'Calgary' or 'Top Stories')
+    # 3. Filter daily news for AI processing
     daily_batch = get_daily_batch(df_final)
-    # Prioritize Calgary news
-    calgary_specific = daily_batch[daily_batch['FeedType'] == 'Calgary'].head(15)
+    # Target Calgary and Top Stories for AI analysis
+    target_news = daily_batch[(daily_batch['FeedType'] == 'Calgary') | (daily_batch['FeedType'] == 'Top Stories')].head(15)
     
-    if not calgary_specific.empty:
+    if not target_news.empty:
         news_summary_input = ""
-        for _, row in calgary_specific.iterrows():
+        for _, row in target_news.iterrows():
             desc = row['DescriptionTitle'] if row['DescriptionTitle'] else row['DescriptionAlt']
             news_summary_input += f"Title: {row['Title']}\nDesc: {desc}\nLink: {row['Link']}\n\n"
         
