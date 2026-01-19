@@ -83,9 +83,15 @@ def get_ai_summary(news_text):
     
     ---
     ## 📊 Daily Insight | 每日洞察
-    1. Sentiment Analysis | 情感分析: [Bilingual]
-    2. Key Topics | 關鍵主題: [Bilingual]
-    3. Summary Conclusion | 總結結論: [Bilingual]
+    1. Sentiment Analysis | 情感分析: 
+    - [English Sentiment & Reason]
+    - [Chinese Sentiment & Reason]
+    2. Key Topics | 關鍵主題: 
+    - [English Topics]
+    - [Chinese Topics]
+    3. Summary Conclusion | 總結結論: 
+    - [English Conclusion]
+    - [Chinese Conclusion]
     """
     
     data = {"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "temperature": 0.5}
@@ -125,8 +131,9 @@ if __name__ == "__main__":
         news_summary_input = ""
         for _, row in target_news.iterrows():
             desc = row['DescriptionTitle'] if row['DescriptionTitle'] else row['DescriptionAlt']
-            news_summary_input += f"Title: {row['Title']}\nDesc: {desc}\nLink: {row['Link']}\n\n"
+            news_summary_input += f"標題: {row['Title']}\n簡介: {desc}\n[Link]({row['Link']})\n\n"
         
+        # 4. AI Summarize and Send
         final_report = get_ai_summary(news_summary_input)
         send_telegram(final_report)
         print("Success: Report sent!")
