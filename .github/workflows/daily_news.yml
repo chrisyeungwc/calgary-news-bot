@@ -2,8 +2,8 @@ name: Calgary News Data Pipeline
 
 on:
   schedule:
-    # Trigger at 14:00 UTC daily (Approx. 07:00 AM Calgary Time)
-    - cron: '0 14 * * *'
+    # Trigger at 17:00 UTC daily (Approx. 10:00 AM Calgary Time)
+    - cron: '0 17 * * *'
   workflow_dispatch:
     # Allow manual triggering for demonstration
     inputs:
