@@ -87,7 +87,7 @@ def get_ai_summary(news_text):
     4. **BILINGUAL REQUIREMENT:** Every title and summary must be Bilingual (English First, then Traditional Chinese HK Style).
 
     Output Structure:
-    # 📰 Daily Intelligence | 每日新聞精要 (Top 6)
+    # 📰 Daily Intelligence | 每日新聞精要 (Top 10)
     
     ## [Index]. [English Title] | [Chinese Title]
     **Summary:** [English - concise]
@@ -102,6 +102,7 @@ def get_ai_summary(news_text):
     4. **Summary Conclusion | 總結結論** (Bilingual)
        
     CRITICAL: Wrap all URLs in [🔗 Link](URL) format.
+    Each summary must be under 150 characters.
     """
     
     data = {"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "temperature": 0.5}
@@ -154,7 +155,7 @@ if __name__ == "__main__":
         
         # Sort by regional priority then by time
         sorted_news = daily_batch.sort_values(by=['Priority', 'DateTime'], ascending=[True, False])
-        target_news = sorted_news.head(25) # Pass top 25 candidates to LLM for final selection
+        target_news = sorted_news.head(35) # Pass top 35 candidates to LLM for final selection
 
         news_summary_input = ""
         for _, row in target_news.iterrows():
