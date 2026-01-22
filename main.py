@@ -7,10 +7,7 @@ from dateutil import parser
 from datetime import datetime, timedelta
 
 # --- 1. Configuration ---
-# Set local timezone for Calgary
 CALGARY_TZ = pytz.timezone('America/Edmonton')
-
-# Define RSS feed categories from CBC
 FEEDS_LIST = ['topstories', 'world', 'canada', 'business', 'health', 'technology', 'canada-calgary']
 FEED_DICT = {
     'topstories': 'Top Stories', 
@@ -24,11 +21,10 @@ FEED_DICT = {
 BASE_URL = 'https://www.cbc.ca/webfeed/rss/rss-'
 CSV_FILE = 'cbc_news.csv'
 
-# Environment variables for API keys and sensitive IDs
+# Secrets from environment variables
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
 TG_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TG_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-LANG_CHOICE = os.getenv('LANG_CHOICE', 'Bilingual')
 
 def grab_news(feed_type):
     """Scrape news items from a specific CBC RSS feed."""
@@ -44,11 +40,8 @@ def grab_news(feed_type):
             guid = item.find('guid').text if item.find('guid') else link
             category = item.find('category').text if item.find('category') else ""
             pub_date = item.find('pubDate').text
-            
-            # Convert UTC publication date to Calgary local time
             dt_calgary = parser.parse(pub_date).astimezone(CALGARY_TZ)
 
-            # Extract image metadata from description if available
             des_alt, des_title = "", ""
             desc_raw = item.find('description')
             if desc_raw:
@@ -83,8 +76,8 @@ def get_ai_summary(news_text):
     Requirements:
     1. Select EXACTLY 10 important, non-duplicate news items.
     2. Priority: Calgary > Canada > World.
-    3. Language: Bilingual (English & Traditional Chinese HK).
-    4. **STRICT LIMIT: Each summary must be under 30 words (English) and 60 characters (Chinese).** This is to prevent message overflow.
+    3. Language: Bilingual (English & Traditional Chinese HK Style).
+    4. **STRICT LIMIT: Each summary must be under 30 words (English) and 60 characters (Chinese).**
 
     Structure:
     # 📰 Daily Intelligence | 每日精要
@@ -97,6 +90,7 @@ def get_ai_summary(news_text):
     ## 📊 Daily Insight | 每日洞察
     1. Sentiment: [Bilingual]
     2. Key Topics: [Bilingual]
+    3. Conclusion: [Bilingual]
     """
     
     data = {"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "temperature": 0.5}
@@ -104,7 +98,7 @@ def get_ai_summary(news_text):
     return resp.json()['choices'][0]['message']['content']
 
 def send_telegram(text):
-    """Send the final report via Telegram Bot API with link previews disabled."""
+    """Send text via Telegram Bot API."""
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
     payload = {
         "chat_id": TG_CHAT_ID,
@@ -119,18 +113,17 @@ def get_daily_batch(df):
     calgary_now = datetime.now(CALGARY_TZ)
     yesterday_calgary = calgary_now - timedelta(days=1)
     df['DateTime'] = pd.to_datetime(df['DateTime'])
-    # Ensure timezone-aware comparison
     mask = (df['DateTime'].dt.tz_localize(None).dt.tz_localize(CALGARY_TZ) > yesterday_calgary)
     return df[mask]
 
 if __name__ == "__main__":
-    # Extraction
+    # 1. Extraction
     all_new_news = []
     for f in FEEDS_LIST:
         all_new_news.append(grab_news(f))
     df_new = pd.concat(all_new_news).drop_duplicates(subset=['Guid'])
 
-    # Storage update
+    # 2. Storage
     if os.path.exists(CSV_FILE):
         df_old = pd.read_csv(CSV_FILE)
         df_final = pd.concat([df_old, df_new]).drop_duplicates(subset=['Guid'], keep='last')
@@ -138,30 +131,39 @@ if __name__ == "__main__":
         df_final = df_new
     df_final.sort_values('DateTime', ascending=False).to_csv(CSV_FILE, index=False)
     
-    # Processing for 10 news items
+    # 3. Processing
     daily_batch = get_daily_batch(df_final)
     if not daily_batch.empty:
         priority_map = {'Calgary': 0, 'Canada': 1, 'World': 2}
         daily_batch['Priority'] = daily_batch['FeedType'].map(priority_map).fillna(3)
         sorted_news = daily_batch.sort_values(by=['Priority', 'DateTime'], ascending=[True, False])
         
-        # Take top 30 candidates to pass to AI
         target_news = sorted_news.head(30)
-
         news_summary_input = ""
         for _, row in target_news.iterrows():
             desc = row['DescriptionTitle'] if row['DescriptionTitle'] else row['DescriptionAlt']
             news_summary_input += f"Source: {row['FeedType']}\nTitle: {row['Title']}\nDesc: {desc}\nLink: {row['Link']}\n\n"
         
-        # AI Summarize and Send
+        # 4. AI Generation
         final_report = get_ai_summary(news_summary_input)
         
-        # Final safety check: if report is still too long, tell us in console
-        if len(final_report) > 4000:
-            print("Warning: Message too long for Telegram. Truncating...")
-            final_report = final_report[:4000]
+        # 5. Delivery: Split report to handle Telegram's 4096 character limit
+        if "---" in final_report:
+            parts = final_report.split("---")
+            news_part = parts[0].strip()
+            # The rest after the first "---" becomes the insight part
+            insight_part = "---".join(parts[1:]).strip()
             
-        send_telegram(final_report)
-        print("Pipeline executed successfully: Report sent.")
+            # Send the News Part first
+            send_telegram(news_part)
+            
+            # Send the Insight Part as a follow-up
+            if insight_part:
+                # Adding a header to the second message for clarity
+                send_telegram(f"📊 **Daily Insight Continued...**\n\n{insight_part}")
+        else:
+            send_telegram(final_report)
+            
+        print("Pipeline executed successfully: Reports sent.")
     else:
         print("No news found.")
