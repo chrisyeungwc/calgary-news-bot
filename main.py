@@ -86,7 +86,7 @@ def get_ai_summary(news_text):
     **摘要：** [Chinese]
     [🔗 Link](URL)
 
-    ---
+    ---------
     ## 📊 Daily Insight | 每日洞察
     1. Sentiment: [Bilingual]
     2. Key Topics: [Bilingual]
@@ -148,11 +148,11 @@ if __name__ == "__main__":
         final_report = get_ai_summary(news_summary_input)
         
         # 5. Delivery: Split report to handle Telegram's 4096 character limit
-        if "---" in final_report:
-            parts = final_report.split("---")
+        if "---------" in final_report:
+            parts = final_report.split("---------")
             news_part = parts[0].strip()
-            # The rest after the first "---" becomes the insight part
-            insight_part = "---".join(parts[1:]).strip()
+            # The rest after the first "---------" becomes the insight part
+            insight_part = "---------".join(parts[1:]).strip()
             
             # Send the News Part first
             send_telegram(news_part)
