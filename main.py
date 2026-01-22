@@ -76,33 +76,27 @@ def get_ai_summary(news_text):
     headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
     
     prompt = f"""
-    You are a professional Data Analyst assistant. 
-    Below are the latest news items sorted by regional priority (Calgary > Canada > World):
+    You are a professional Data Analyst. 
+    Task: Summarize the latest news from the input provided:
     {news_text}
     
-    Tasks:
-    1. Select the 10 most important and RELEVANT news items.
-    2. **CRITICAL: DO NOT repeat the same story.** If multiple sources report the same event, select the best one.
-    3. **PRIORITY RULE:** Prioritize local Calgary news, then National Canada news, then International news.
-    4. **BILINGUAL REQUIREMENT:** Every title and summary must be Bilingual (English First, then Traditional Chinese HK Style).
+    Requirements:
+    1. Select EXACTLY 10 important, non-duplicate news items.
+    2. Priority: Calgary > Canada > World.
+    3. Language: Bilingual (English & Traditional Chinese HK).
+    4. **STRICT LIMIT: Each summary must be under 30 words (English) and 60 characters (Chinese).** This is to prevent message overflow.
 
-    Output Structure:
-    # 📰 Daily Intelligence | 每日新聞精要 (Top 10)
-    
+    Structure:
+    # 📰 Daily Intelligence | 每日精要
     ## [Index]. [English Title] | [Chinese Title]
-    **Summary:** [English - concise]
-    **摘要：** [Traditional Chinese - natural]
-    [🔗 Link](URL_HERE)
+    **Summary:** [English]
+    **摘要：** [Chinese]
+    [🔗 Link](URL)
 
     ---
     ## 📊 Daily Insight | 每日洞察
-    1. **Sentiment Analysis | 情感分析** (Bilingual)
-    2. **Key Topics | 關鍵主題** (Bilingual)
-    3. **Regional Focus | 地域分布** (Mention the ratio of Calgary/Canada/World news)
-    4. **Summary Conclusion | 總結結論** (Bilingual)
-       
-    CRITICAL: Wrap all URLs in [🔗 Link](URL) format.
-    Each summary must be under 150 characters.
+    1. Sentiment: [Bilingual]
+    2. Key Topics: [Bilingual]
     """
     
     data = {"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "temperature": 0.5}
@@ -130,42 +124,44 @@ def get_daily_batch(df):
     return df[mask]
 
 if __name__ == "__main__":
-    # 1. Extraction: Collect data from all RSS feeds
+    # Extraction
     all_new_news = []
     for f in FEEDS_LIST:
         all_new_news.append(grab_news(f))
     df_new = pd.concat(all_new_news).drop_duplicates(subset=['Guid'])
 
-    # 2. Storage: Incremental update of the CSV database
+    # Storage update
     if os.path.exists(CSV_FILE):
         df_old = pd.read_csv(CSV_FILE)
         df_final = pd.concat([df_old, df_new]).drop_duplicates(subset=['Guid'], keep='last')
     else:
         df_final = df_new
-
-    # Save to local CSV file
     df_final.sort_values('DateTime', ascending=False).to_csv(CSV_FILE, index=False)
     
-    # 3. Processing: Regional Priority Sorting
+    # Processing for 10 news items
     daily_batch = get_daily_batch(df_final)
     if not daily_batch.empty:
-        # Define priority: Calgary (0) > Canada (1) > World (2) > Others (3)
         priority_map = {'Calgary': 0, 'Canada': 1, 'World': 2}
         daily_batch['Priority'] = daily_batch['FeedType'].map(priority_map).fillna(3)
-        
-        # Sort by regional priority then by time
         sorted_news = daily_batch.sort_values(by=['Priority', 'DateTime'], ascending=[True, False])
-        target_news = sorted_news.head(35) # Pass top 35 candidates to LLM for final selection
+        
+        # Take top 30 candidates to pass to AI
+        target_news = sorted_news.head(30)
 
         news_summary_input = ""
         for _, row in target_news.iterrows():
             desc = row['DescriptionTitle'] if row['DescriptionTitle'] else row['DescriptionAlt']
-            # Format raw data for LLM input
             news_summary_input += f"Source: {row['FeedType']}\nTitle: {row['Title']}\nDesc: {desc}\nLink: {row['Link']}\n\n"
         
-        # 4. Intelligence: AI Analysis and Delivery
+        # AI Summarize and Send
         final_report = get_ai_summary(news_summary_input)
+        
+        # Final safety check: if report is still too long, tell us in console
+        if len(final_report) > 4000:
+            print("Warning: Message too long for Telegram. Truncating...")
+            final_report = final_report[:4000]
+            
         send_telegram(final_report)
         print("Pipeline executed successfully: Report sent.")
     else:
-        print("Pipeline executed successfully: No new updates found.")
+        print("No news found.")
