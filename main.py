@@ -64,11 +64,10 @@ def grab_news(feed_type):
         return pd.DataFrame()
 
 def get_ai_summary(news_text):
-    """Process news data using DeepSeek LLM for bilingual summarization."""
-    url = "https://api.deepseek.com/chat/completions"
-    headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
-    
-    prompt = f"""
+    """Process news data using LLM for bilingual summarization."""
+    MODEL_CHOICE = os.getenv('MODEL_CHOICE', 'qwen3:0.6b')
+
+    prompt_deepseek = f"""
     You are a professional Data Analyst. 
     Task: Summarize the latest news from the input provided:
     {news_text}
@@ -92,10 +91,35 @@ def get_ai_summary(news_text):
     2. Key Topics: [Bilingual]
     3. Conclusion: [Bilingual]
     """
+
+    prompt_qwen3 = f"""
+    Summarize these 10 news items in Bilingual (English and Traditional Chinese).
+    Input: {news_text}
+    Format:
+    ## [Title]
+    - [English Summary]
+    - [中文摘要]
+    [Link]
+    """
+
+    if MODEL_CHOICE == 'deepseek':
+        url = "https://api.deepseek.com/chat/completions"
+        headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
+        model_playload = "deepseek-chat"
+        active_prompt = prompt_deepseek
+    else:
+        # Ollama 在 GitHub Action 的預設地址
+        url = "http://localhost:11434/v1/chat/completions"
+        headers = {"Content-Type": "application/json"}
+        model_playload = "qwen3:0.6b"
+        active_prompt = prompt_qwen3
     
-    data = {"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "temperature": 0.5}
-    resp = requests.post(url, json=data, headers=headers)
-    return resp.json()['choices'][0]['message']['content']
+    data = {"model": model_playload, "messages": [{"role": "user", "content": active_prompt}], "temperature": 0.5}
+    try:
+        resp = requests.post(url, json=data, headers=headers, timeout=180)
+        return resp.json()['choices'][0]['message']['content']
+    except Exception as e:
+        return f"AI Summary Error: {e}"
 
 def send_telegram(text):
     """Send text via Telegram Bot API."""
@@ -148,6 +172,7 @@ if __name__ == "__main__":
         final_report = get_ai_summary(news_summary_input)
         
         # 5. Delivery: Split report to handle Telegram's 4096 character limit
+        # split logic: report included "---------" and the model is deepseek 
         if "---------" in final_report:
             parts = final_report.split("---------")
             news_part = parts[0].strip()
@@ -155,11 +180,12 @@ if __name__ == "__main__":
             insight_part = "---------".join(parts[1:]).strip()
             
             # Send the News Part first
-            send_telegram(news_part)
+            if news_part:
+                send_telegram(news_part)
             
             # Send the Insight Part as a follow-up
             if insight_part:
-                # Adding a header to the second message for clarity
+                # Adding a header to the second message for clarity, only for deepseek model
                 send_telegram(f"📊 **Daily Insight Continued...**\n\n{insight_part}")
         else:
             send_telegram(final_report)
