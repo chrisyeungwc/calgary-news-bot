@@ -31,11 +31,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Setup Ollama
-        if: github.event.inputs.model_choice == 'qwen3:0.6b'
-        uses: appleboy/ollama-action@v0.0.1
-        with:
-          models: qwen3:0.6b
+      - name: Install and Start Ollama
+        if: ${{ (github.event.inputs.model_choice || 'qwen3:0.6b') == 'qwen3:0.6b' }}
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          echo "Waiting for Ollama to start..."
+          timeout 60s bash -c 'until curl -s http://localhost:11434 > /dev/null; do sleep 2; done'
+          ollama pull qwen3:0.6b
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
