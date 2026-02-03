@@ -93,16 +93,13 @@ def get_ai_summary(news_text):
     """
 
     prompt_qwen3 = f"""
-    Summarize these news items. 
-    Output Language: Bilingual (English and Traditional Chinese).
-    For each item, provide:
-    1. Title
-    2. One sentence summary in English
-    3. 一句中文摘要
-    4. Link
-
-    News Content:
-    {news_text}
+    Task: Provide a concise English summary for each news item. 
+    Language: English ONLY.
+    Input: {news_text}
+    Format:
+    ## [Title]
+    - [One sentence summary]
+    [Link]
     """
 
     if MODEL_CHOICE == 'deepseek':
@@ -117,7 +114,7 @@ def get_ai_summary(news_text):
         headers = {"Content-Type": "application/json"}
         model_playload = "qwen3:0.6b"
         active_prompt = prompt_qwen3
-        data = {"model": model_playload, "messages": [{"role": "user", "content": active_prompt}], "temperature": 0.2}
+        data = {"model": model_playload, "messages": [{"role": "user", "content": active_prompt}], "temperature": 0.1}
     
     try:
         resp = requests.post(url, json=data, headers=headers, timeout=300)
