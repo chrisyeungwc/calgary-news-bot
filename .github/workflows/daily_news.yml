@@ -16,7 +16,7 @@ on:
       model_choice:
         description: 'AI Model Choice'
         required: true
-        default: 'qwen3:0.6b'
+        default: 'deepseek'
         type: choice
         options:
           - deepseek
