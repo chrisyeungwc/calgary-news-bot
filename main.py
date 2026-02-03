@@ -93,13 +93,16 @@ def get_ai_summary(news_text):
     """
 
     prompt_qwen3 = f"""
-    Summarize these 10 news items in Bilingual (English and Traditional Chinese).
-    Input: {news_text}
-    Format:
-    ## [Title]
-    - [English Summary]
-    - [中文摘要]
-    [Link]
+    Summarize these news items. 
+    Output Language: Bilingual (English and Traditional Chinese).
+    For each item, provide:
+    1. Title
+    2. One sentence summary in English
+    3. 一句中文摘要
+    4. Link
+
+    News Content:
+    {news_text}
     """
 
     if MODEL_CHOICE == 'deepseek':
@@ -107,14 +110,15 @@ def get_ai_summary(news_text):
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
         model_playload = "deepseek-chat"
         active_prompt = prompt_deepseek
+        data = {"model": model_playload, "messages": [{"role": "user", "content": active_prompt}], "temperature": 0.5}
     else:
         # Ollama 在 GitHub Action 的預設地址
         url = "http://localhost:11434/v1/chat/completions"
         headers = {"Content-Type": "application/json"}
         model_playload = "qwen3:0.6b"
         active_prompt = prompt_qwen3
+        data = {"model": model_playload, "messages": [{"role": "user", "content": active_prompt}], "temperature": 0.2}
     
-    data = {"model": model_playload, "messages": [{"role": "user", "content": active_prompt}], "temperature": 0.5}
     try:
         resp = requests.post(url, json=data, headers=headers, timeout=300)
         return resp.json()['choices'][0]['message']['content']
@@ -166,7 +170,7 @@ if __name__ == "__main__":
         if MODEL_CHOICE == 'deepseek':
             num_news = 30 
         else: 
-            num_news = 12 # Qwen 12 news only 
+            num_news = 10 # Qwen 10 news only 
         target_news = sorted_news.head(num_news)
         news_summary_input = ""
         for _, row in target_news.iterrows():
