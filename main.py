@@ -116,7 +116,7 @@ def get_ai_summary(news_text):
     
     data = {"model": model_playload, "messages": [{"role": "user", "content": active_prompt}], "temperature": 0.5}
     try:
-        resp = requests.post(url, json=data, headers=headers, timeout=180)
+        resp = requests.post(url, json=data, headers=headers, timeout=300)
         return resp.json()['choices'][0]['message']['content']
     except Exception as e:
         return f"AI Summary Error: {e}"
@@ -161,8 +161,13 @@ if __name__ == "__main__":
         priority_map = {'Calgary': 0, 'Canada': 1, 'World': 2}
         daily_batch['Priority'] = daily_batch['FeedType'].map(priority_map).fillna(3)
         sorted_news = daily_batch.sort_values(by=['Priority', 'DateTime'], ascending=[True, False])
+        MODEL_CHOICE = os.getenv('MODEL_CHOICE', 'qwen3:0.6b')
         
-        target_news = sorted_news.head(30)
+        if MODEL_CHOICE == 'deepseek':
+            num_news = 30 
+        else: 
+            num_news = 12 # Qwen 12 news only 
+        target_news = sorted_news.head(num_news)
         news_summary_input = ""
         for _, row in target_news.iterrows():
             desc = row['DescriptionTitle'] if row['DescriptionTitle'] else row['DescriptionAlt']
