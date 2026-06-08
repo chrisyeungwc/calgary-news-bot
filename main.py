@@ -73,10 +73,10 @@ def get_ai_summary(news_text):
     {news_text}
     
     Requirements:
-    1. Select EXACTLY 10 important, non-duplicate news items.
+    1. Select EXACTLY 20 important, non-duplicate news items.
     2. Priority: Calgary > Canada > World.
     3. Language: Bilingual (English & Traditional Chinese HK Style).
-    4. **STRICT LIMIT: Each summary must be under 30 words (English) and 60 characters (Chinese).**
+    4. **STRICT LIMIT: Each summary must be under 40 words (English) and 80 characters (Chinese).**
 
     Structure:
     # 📰 Daily Intelligence | 每日精要
@@ -84,12 +84,7 @@ def get_ai_summary(news_text):
     **Summary:** [English]
     **摘要：** [Chinese]
     [🔗 Link](URL)
-
     ---------
-    ## 📊 Daily Insight | 每日洞察
-    1. Sentiment: [Bilingual]
-    2. Key Topics: [Bilingual]
-    3. Conclusion: [Bilingual]
     """
 
     prompt_qwen3 = f"""
@@ -159,15 +154,15 @@ if __name__ == "__main__":
     # 3. Processing
     daily_batch = get_daily_batch(df_final)
     if not daily_batch.empty:
-        priority_map = {'Calgary': 0, 'Canada': 1, 'World': 2}
-        daily_batch['Priority'] = daily_batch['FeedType'].map(priority_map).fillna(3)
+        priority_map = {'Calgary': 0, 'Canada': 1, 'Health': 2, 'Technology': 3, 'Business': 4}
+        daily_batch['Priority'] = daily_batch['FeedType'].map(priority_map).fillna(5)
         sorted_news = daily_batch.sort_values(by=['Priority', 'DateTime'], ascending=[True, False])
         MODEL_CHOICE = os.getenv('MODEL_CHOICE', 'qwen3:0.6b')
         
         if MODEL_CHOICE == 'deepseek':
-            num_news = 30 
+            num_news = 40 
         else: 
-            num_news = 10 # Qwen 10 news only 
+            num_news = 10 # Qwen 20 news only 
         target_news = sorted_news.head(num_news)
         news_summary_input = ""
         for _, row in target_news.iterrows():
@@ -183,7 +178,8 @@ if __name__ == "__main__":
             parts = final_report.split("---------")
             news_part = parts[0].strip()
             # The rest after the first "---------" becomes the insight part
-            insight_part = "---------".join(parts[1:]).strip()
+            #insight_part = "---------".join(parts[1:]).strip()
+            insight_part = False
             
             # Send the News Part first
             if news_part:
